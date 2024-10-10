@@ -1,4 +1,5 @@
-'use client'
+"use client";
+
 import { useState, useEffect } from 'react';
 import PasswordInput from './components/PasswordInput';
 import RuleList from './components/RuleList';
@@ -8,42 +9,63 @@ import { estimateCrackingTime } from './lib/estimateCrackingTime';
 
 const Page = () => {
   const [password, setPassword] = useState('');
-  const [rules, setRules] = useState(validatePassword(''));
+  const [rules, setRules] = useState([]);
   const [timer, setTimer] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [allRulesSatisfied, setAllRulesSatisfied] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
 
+  const [randomLength, setRandomLength] = useState(0);
+  const [randomDigitSum, setRandomDigitSum] = useState(0);
+  const [randomRomanSum, setRandomRomanSum] = useState(0);
+
+  // Ensure random values are generated only on component mount
+  useEffect(() => {
+    setRandomLength(Math.floor(Math.random() * (10 - 6 + 1)) + 6);
+    setRandomDigitSum(Math.floor(Math.random() * (200 - 100 + 1)) + 100);
+    setRandomRomanSum(Math.floor(Math.random() * (50 - 30 + 1)) + 30);
+  }, []);
+
+  // Validate password when it changes and when random values are set
+  useEffect(() => {
+    if (randomLength && randomDigitSum && randomRomanSum && password) {
+      setRules(validatePassword(password, randomLength, randomDigitSum, randomRomanSum));
+    }
+  }, [password, randomLength, randomDigitSum, randomRomanSum]);
+
+  // Update the typing state and the timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTyping && !allRulesSatisfied) {
       interval = setInterval(() => {
-        setTimer(prevTimer => prevTimer + 1);
+        setTimer((prevTimer) => prevTimer + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [isTyping, allRulesSatisfied]);
 
+  // Check if all rules are satisfied when rules change
   useEffect(() => {
-    const allSatisfied = rules.every(rule => rule.isSatisfied);
-    setAllRulesSatisfied(allSatisfied);
-    if (allSatisfied) {
-      setIsTyping(false);
-      setShowCongrats(true);
+    if (password && rules.length > 0) {
+      const allSatisfied = rules.every((rule) => rule.isSatisfied);
+      setAllRulesSatisfied(allSatisfied);
+      if (allSatisfied) {
+        setIsTyping(false);
+        setShowCongrats(true);
+      }
     }
-  }, [rules]);
+  }, [rules, password]);
 
   const handlePasswordChange = (newPassword: string) => {
     if (!isTyping) {
       setIsTyping(true);
     }
     setPassword(newPassword);
-    setRules(validatePassword(newPassword));
   };
 
   const handleRestart = () => {
     setPassword('');
-    setRules(validatePassword(''));
+    setRules([]);
     setTimer(0);
     setIsTyping(false);
     setAllRulesSatisfied(false);
